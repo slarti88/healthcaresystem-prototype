@@ -30,11 +30,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
         .finally(() => setLoading(false));
     } else {
+      console.log("Not loading")
       setLoading(false);
     }
   }, [token]);
 
   const login = async (email: string, password: string) => {
+    console.log("Sending auth/me")
     const res = await api.post('/auth/login', { email, password });
     const { token: newToken, user: newUser } = res.data;
     localStorage.setItem('token', newToken);

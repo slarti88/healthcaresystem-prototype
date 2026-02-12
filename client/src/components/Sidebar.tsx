@@ -15,12 +15,16 @@ export default function Sidebar() {
         <NavLink to="/users" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
           Users
         </NavLink>
-        <NavLink to="/medicines" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-          Medicine Inventory
-        </NavLink>
-        <NavLink to="/inquiries" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-          Inquiries
-        </NavLink>
+        {user?.role !== 'family' && (
+          <NavLink to="/medicines" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+            Medicine Inventory
+          </NavLink>
+        )}
+        {user?.role !== 'staff' && (
+          <NavLink to="/inquiries" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+            Inquiries
+          </NavLink>
+        )}
       </nav>
       <button className="btn btn-logout" onClick={logout}>
         Logout

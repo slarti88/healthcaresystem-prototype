@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
-import { verifyToken, adminOnly } from './middleware/auth';
+import { verifyToken, allowRoles } from './middleware/auth';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
 import patientLinkRoutes from './routes/patientLinks';
@@ -19,12 +19,12 @@ app.use(express.json());
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/users', verifyToken, adminOnly, userRoutes);
-app.use('/api/patient-links', verifyToken, adminOnly, patientLinkRoutes);
-app.use('/api/vitals', verifyToken, adminOnly, vitalsRoutes);
-app.use('/api/doctor-comments', verifyToken, adminOnly, doctorCommentRoutes);
-app.use('/api/medicines', verifyToken, adminOnly, medicineRoutes);
-app.use('/api/inquiries', verifyToken, adminOnly, inquiryRoutes);
+app.use('/api/users', verifyToken, allowRoles('admin', 'staff', 'family'), userRoutes);
+app.use('/api/patient-links', verifyToken, allowRoles('admin'), patientLinkRoutes);
+app.use('/api/vitals', verifyToken, allowRoles('admin', 'staff', 'family'), vitalsRoutes);
+app.use('/api/doctor-comments', verifyToken, allowRoles('admin', 'staff', 'family'), doctorCommentRoutes);
+app.use('/api/medicines', verifyToken, allowRoles('admin', 'staff'), medicineRoutes);
+app.use('/api/inquiries', verifyToken, allowRoles('admin', 'family'), inquiryRoutes);
 
 mongoose
   .connect(MONGO_URI)

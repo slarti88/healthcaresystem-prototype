@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
+import { useAuth } from '../context/AuthContext';
 import { User, PatientLink } from '../types';
 
 export default function UsersPage() {
+  const { user: currentUser } = useAuth();
+  const isAdmin = currentUser?.role === 'admin';
+
   const [users, setUsers] = useState<User[]>([]);
   const [links, setLinks] = useState<PatientLink[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,12 +25,13 @@ export default function UsersPage() {
 
   const fetchData = async () => {
     try {
-      const [usersRes, linksRes] = await Promise.all([
-        api.get('/users'),
-        api.get('/patient-links'),
-      ]);
+      console.log("Fetching data")
+      const usersRes = await api.get('/users');
       setUsers(usersRes.data);
-      setLinks(linksRes.data);
+      if (isAdmin) {
+        const linksRes = await api.get('/patient-links');
+        setLinks(linksRes.data);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -101,30 +106,32 @@ export default function UsersPage() {
       </div>
 
       {/* Create User Form */}
-      <form className="inline-form" onSubmit={handleCreateUser}>
-        <div className="form-group">
-          <label>Name</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} required />
-        </div>
-        <div className="form-group">
-          <label>Email</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </div>
-        <div className="form-group">
-          <label>Password</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        </div>
-        <div className="form-group">
-          <label>Role</label>
-          <select value={role} onChange={(e) => setRole(e.target.value as User['role'])}>
-            <option value="patient">Patient</option>
-            <option value="family">Family</option>
-            <option value="staff">Staff</option>
-            <option value="admin">Admin</option>
-          </select>
-        </div>
-        <button type="submit" className="btn btn-primary">Add User</button>
-      </form>
+      {isAdmin && (
+        <form className="inline-form" onSubmit={handleCreateUser}>
+          <div className="form-group">
+            <label>Name</label>
+            <input value={name} onChange={(e) => setName(e.target.value)} required />
+          </div>
+          <div className="form-group">
+            <label>Email</label>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          </div>
+          <div className="form-group">
+            <label>Password</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          </div>
+          <div className="form-group">
+            <label>Role</label>
+            <select value={role} onChange={(e) => setRole(e.target.value as User['role'])}>
+              <option value="patient">Patient</option>
+              <option value="family">Family</option>
+              <option value="staff">Staff</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <button type="submit" className="btn btn-primary">Add User</button>
+        </form>
+      )}
 
       {/* Users Table */}
       <table>
@@ -148,25 +155,31 @@ export default function UsersPage() {
               </td>
               <td>{user.email}</td>
               <td>
-                <select
-                  value={user.role}
-                  onChange={(e) => handleUpdateRole(user._id, e.target.value)}
-                  style={{ width: 'auto' }}
-                >
-                  <option value="patient">Patient</option>
-                  <option value="family">Family</option>
-                  <option value="staff">Staff</option>
-                  <option value="admin">Admin</option>
-                </select>
+                {isAdmin ? (
+                  <select
+                    value={user.role}
+                    onChange={(e) => handleUpdateRole(user._id, e.target.value)}
+                    style={{ width: 'auto' }}
+                  >
+                    <option value="patient">Patient</option>
+                    <option value="family">Family</option>
+                    <option value="staff">Staff</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                ) : (
+                  user.role
+                )}
               </td>
               <td>
                 <div className="actions">
                   {user.role === 'patient' && (
                     <Link to={`/patients/${user._id}`} className="btn btn-primary btn-sm">View</Link>
                   )}
-                  <button className="btn btn-danger btn-sm" onClick={() => handleDeleteUser(user._id)}>
-                    Delete
-                  </button>
+                  {isAdmin && (
+                    <button className="btn btn-danger btn-sm" onClick={() => handleDeleteUser(user._id)}>
+                      Delete
+                    </button>
+                  )}
                 </div>
               </td>
             </tr>
@@ -175,62 +188,64 @@ export default function UsersPage() {
       </table>
 
       {/* Patient Links */}
-      <div className="section" style={{ marginTop: 32 }}>
-        <h2>Patient Links</h2>
-        <form className="inline-form" onSubmit={handleCreateLink}>
-          <div className="form-group">
-            <label>Patient</label>
-            <select value={linkPatientId} onChange={(e) => setLinkPatientId(e.target.value)} required>
-              <option value="">Select patient...</option>
-              {patients.map((p) => (
-                <option key={p._id} value={p._id}>{p.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="form-group">
-            <label>Link To</label>
-            <select value={linkUserId} onChange={(e) => setLinkUserId(e.target.value)} required>
-              <option value="">Select user...</option>
-              {nonPatients.map((u) => (
-                <option key={u._id} value={u._id}>{u.name} ({u.role})</option>
-              ))}
-            </select>
-          </div>
-          <div className="form-group">
-            <label>Relationship</label>
-            <select value={linkRelationship} onChange={(e) => setLinkRelationship(e.target.value as 'family' | 'staff')}>
-              <option value="family">Family</option>
-              <option value="staff">Staff</option>
-            </select>
-          </div>
-          <button type="submit" className="btn btn-primary">Link</button>
-        </form>
+      {isAdmin && (
+        <div className="section" style={{ marginTop: 32 }}>
+          <h2>Patient Links</h2>
+          <form className="inline-form" onSubmit={handleCreateLink}>
+            <div className="form-group">
+              <label>Patient</label>
+              <select value={linkPatientId} onChange={(e) => setLinkPatientId(e.target.value)} required>
+                <option value="">Select patient...</option>
+                {patients.map((p) => (
+                  <option key={p._id} value={p._id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Link To</label>
+              <select value={linkUserId} onChange={(e) => setLinkUserId(e.target.value)} required>
+                <option value="">Select user...</option>
+                {nonPatients.map((u) => (
+                  <option key={u._id} value={u._id}>{u.name} ({u.role})</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Relationship</label>
+              <select value={linkRelationship} onChange={(e) => setLinkRelationship(e.target.value as 'family' | 'staff')}>
+                <option value="family">Family</option>
+                <option value="staff">Staff</option>
+              </select>
+            </div>
+            <button type="submit" className="btn btn-primary">Link</button>
+          </form>
 
-        <table>
-          <thead>
-            <tr>
-              <th>Patient</th>
-              <th>Linked User</th>
-              <th>Relationship</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {links.map((link) => (
-              <tr key={link._id}>
-                <td>{link.patientId?.name}</td>
-                <td>{link.linkedUserId?.name}</td>
-                <td><span className={`badge badge-${link.relationship}`}>{link.relationship}</span></td>
-                <td>
-                  <button className="btn btn-danger btn-sm" onClick={() => handleDeleteLink(link._id)}>
-                    Remove
-                  </button>
-                </td>
+          <table>
+            <thead>
+              <tr>
+                <th>Patient</th>
+                <th>Linked User</th>
+                <th>Relationship</th>
+                <th>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {links.map((link) => (
+                <tr key={link._id}>
+                  <td>{link.patientId?.name}</td>
+                  <td>{link.linkedUserId?.name}</td>
+                  <td><span className={`badge badge-${link.relationship}`}>{link.relationship}</span></td>
+                  <td>
+                    <button className="btn btn-danger btn-sm" onClick={() => handleDeleteLink(link._id)}>
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../api/axios';
+import { useAuth } from '../context/AuthContext';
 import { User, Vitals, DoctorComment } from '../types';
 
 export default function PatientDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { user: currentUser } = useAuth();
+  const isAdmin = currentUser?.role === 'admin';
+  const isStaff = currentUser?.role === 'staff';
+  const isFamily = currentUser?.role === 'family';
+
   const [patient, setPatient] = useState<User | null>(null);
   const [vitals, setVitals] = useState<Vitals[]>([]);
   const [comments, setComments] = useState<DoctorComment[]>([]);
@@ -43,6 +49,13 @@ export default function PatientDetailPage() {
   };
 
   useEffect(() => { fetchData(); }, [id]);
+
+  // Auto-set staffId for staff users
+  useEffect(() => {
+    if (isStaff && currentUser) {
+      setStaffId(currentUser._id);
+    }
+  }, [isStaff, currentUser]);
 
   const handleAddVitals = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,36 +147,38 @@ export default function PatientDetailPage() {
       )}
 
       {/* Add Vitals Form */}
-      <div className="section">
-        <h2>Add Vitals</h2>
-        <form className="inline-form" onSubmit={handleAddVitals}>
-          <div className="form-group">
-            <label>Heart Rate</label>
-            <input type="number" value={heartRate} onChange={(e) => setHeartRate(e.target.value)} required />
-          </div>
-          <div className="form-group">
-            <label>Systolic</label>
-            <input type="number" value={systolic} onChange={(e) => setSystolic(e.target.value)} required />
-          </div>
-          <div className="form-group">
-            <label>Diastolic</label>
-            <input type="number" value={diastolic} onChange={(e) => setDiastolic(e.target.value)} required />
-          </div>
-          <div className="form-group">
-            <label>Temperature</label>
-            <input type="number" step="0.1" value={temperature} onChange={(e) => setTemperature(e.target.value)} required />
-          </div>
-          <div className="form-group">
-            <label>O₂ Level</label>
-            <input type="number" value={oxygenLevel} onChange={(e) => setOxygenLevel(e.target.value)} required />
-          </div>
-          <div className="form-group">
-            <label>Weight</label>
-            <input type="number" step="0.1" value={weight} onChange={(e) => setWeight(e.target.value)} required />
-          </div>
-          <button type="submit" className="btn btn-primary">Add</button>
-        </form>
-      </div>
+      {!isFamily && (
+        <div className="section">
+          <h2>Add Vitals</h2>
+          <form className="inline-form" onSubmit={handleAddVitals}>
+            <div className="form-group">
+              <label>Heart Rate</label>
+              <input type="number" value={heartRate} onChange={(e) => setHeartRate(e.target.value)} required />
+            </div>
+            <div className="form-group">
+              <label>Systolic</label>
+              <input type="number" value={systolic} onChange={(e) => setSystolic(e.target.value)} required />
+            </div>
+            <div className="form-group">
+              <label>Diastolic</label>
+              <input type="number" value={diastolic} onChange={(e) => setDiastolic(e.target.value)} required />
+            </div>
+            <div className="form-group">
+              <label>Temperature</label>
+              <input type="number" step="0.1" value={temperature} onChange={(e) => setTemperature(e.target.value)} required />
+            </div>
+            <div className="form-group">
+              <label>O₂ Level</label>
+              <input type="number" value={oxygenLevel} onChange={(e) => setOxygenLevel(e.target.value)} required />
+            </div>
+            <div className="form-group">
+              <label>Weight</label>
+              <input type="number" step="0.1" value={weight} onChange={(e) => setWeight(e.target.value)} required />
+            </div>
+            <button type="submit" className="btn btn-primary">Add</button>
+          </form>
+        </div>
+      )}
 
       {/* Vitals History Table */}
       <div className="section">
@@ -190,9 +205,11 @@ export default function PatientDetailPage() {
                 <td>{v.oxygenLevel}%</td>
                 <td>{v.weight} lbs</td>
                 <td>
-                  <button className="btn btn-danger btn-sm" onClick={() => handleDeleteVitals(v._id)}>
-                    Delete
-                  </button>
+                  {!isFamily && (
+                    <button className="btn btn-danger btn-sm" onClick={() => handleDeleteVitals(v._id)}>
+                      Delete
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -203,22 +220,28 @@ export default function PatientDetailPage() {
       {/* Doctor Comments */}
       <div className="section">
         <h2>Doctor Comments</h2>
-        <form className="inline-form" onSubmit={handleAddComment}>
-          <div className="form-group">
-            <label>Doctor</label>
-            <select value={staffId} onChange={(e) => setStaffId(e.target.value)} required>
-              <option value="">Select doctor...</option>
-              {staffUsers.map((s) => (
-                <option key={s._id} value={s._id}>{s.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="form-group" style={{ flex: 1 }}>
-            <label>Comment</label>
-            <input value={comment} onChange={(e) => setComment(e.target.value)} required />
-          </div>
-          <button type="submit" className="btn btn-primary">Add Comment</button>
-        </form>
+        {!isFamily && (
+          <form className="inline-form" onSubmit={handleAddComment}>
+            <div className="form-group">
+              <label>Doctor</label>
+              {isStaff ? (
+                <input value={currentUser?.name || ''} disabled />
+              ) : (
+                <select value={staffId} onChange={(e) => setStaffId(e.target.value)} required>
+                  <option value="">Select doctor...</option>
+                  {staffUsers.map((s) => (
+                    <option key={s._id} value={s._id}>{s.name}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label>Comment</label>
+              <input value={comment} onChange={(e) => setComment(e.target.value)} required />
+            </div>
+            <button type="submit" className="btn btn-primary">Add Comment</button>
+          </form>
+        )}
 
         <div className="card">
           {comments.length === 0 && <p style={{ color: 'var(--text-muted)' }}>No comments yet</p>}
@@ -226,13 +249,15 @@ export default function PatientDetailPage() {
             <div key={c._id} className="comment-item">
               <div className="comment-meta">
                 <strong>{c.staffId?.name}</strong> &middot; {new Date(c.createdAt).toLocaleDateString()}
-                <button
-                  className="btn btn-danger btn-sm"
-                  style={{ marginLeft: 8 }}
-                  onClick={() => handleDeleteComment(c._id)}
-                >
-                  Delete
-                </button>
+                {!isFamily && (
+                  <button
+                    className="btn btn-danger btn-sm"
+                    style={{ marginLeft: 8 }}
+                    onClick={() => handleDeleteComment(c._id)}
+                  >
+                    Delete
+                  </button>
+                )}
               </div>
               <p>{c.comment}</p>
             </div>

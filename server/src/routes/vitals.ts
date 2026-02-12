@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import Vitals from '../models/Vitals';
-import { AuthRequest } from '../middleware/auth';
+import { AuthRequest, allowRoles } from '../middleware/auth';
 
 const router = Router();
 
@@ -19,7 +19,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 });
 
 // POST /api/vitals
-router.post('/', async (req: AuthRequest, res: Response) => {
+router.post('/', allowRoles('admin', 'staff'), async (req: AuthRequest, res: Response) => {
   try {
     const vital = await Vitals.create(req.body);
     res.status(201).json(vital);
@@ -29,7 +29,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 });
 
 // PUT /api/vitals/:id
-router.put('/:id', async (req: AuthRequest, res: Response) => {
+router.put('/:id', allowRoles('admin', 'staff'), async (req: AuthRequest, res: Response) => {
   try {
     const vital = await Vitals.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!vital) {
@@ -42,7 +42,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
 });
 
 // DELETE /api/vitals/:id
-router.delete('/:id', async (req: AuthRequest, res: Response) => {
+router.delete('/:id', allowRoles('admin', 'staff'), async (req: AuthRequest, res: Response) => {
   try {
     const vital = await Vitals.findByIdAndDelete(req.params.id);
     if (!vital) {

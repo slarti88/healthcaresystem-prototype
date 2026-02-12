@@ -30,4 +30,13 @@ export function adminOnly(req: AuthRequest, res: Response, next: NextFunction) {
   next();
 }
 
+export function allowRoles(...roles: string[]) {
+  return (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    next();
+  };
+}
+
 export { JWT_SECRET };

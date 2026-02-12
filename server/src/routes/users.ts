@@ -1,22 +1,30 @@
 import { Router, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import User from '../models/User';
-import { AuthRequest } from '../middleware/auth';
+import PatientLink from '../models/PatientLink';
+import { AuthRequest, allowRoles } from '../middleware/auth';
 
 const router = Router();
 
 // GET /api/users
-router.get('/', async (_req: AuthRequest, res: Response) => {
+router.get('/', async (req: AuthRequest, res: Response) => {
   try {
-    const users = await User.find().select('-password').sort({ createdAt: -1 });
-    res.json(users);
+    if (req.user?.role === 'admin') {
+      const users = await User.find().select('-password').sort({ createdAt: -1 });
+      return res.json(users);
+    }
+    // staff/family: only return linked patients
+    const links = await PatientLink.find({ linkedUserId: req.user!.id });
+    const patientIds = links.map((l) => l.patientId);
+    const patients = await User.find({ _id: { $in: patientIds } }).select('-password').sort({ createdAt: -1 });
+    res.json(patients);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
 });
 
 // POST /api/users
-router.post('/', async (req: AuthRequest, res: Response) => {
+router.post('/', allowRoles('admin'), async (req: AuthRequest, res: Response) => {
   try {
     const { name, email, password, role } = req.body;
     const exists = await User.findOne({ email });
@@ -33,7 +41,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 });
 
 // PUT /api/users/:id
-router.put('/:id', async (req: AuthRequest, res: Response) => {
+router.put('/:id', allowRoles('admin'), async (req: AuthRequest, res: Response) => {
   try {
     const { role } = req.body;
     const user = await User.findByIdAndUpdate(req.params.id, { role }, { new: true }).select('-password');
@@ -47,7 +55,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
 });
 
 // DELETE /api/users/:id
-router.delete('/:id', async (req: AuthRequest, res: Response) => {
+router.delete('/:id', allowRoles('admin'), async (req: AuthRequest, res: Response) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id);
     if (!user) {

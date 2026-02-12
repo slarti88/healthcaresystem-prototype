@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import DoctorComment from '../models/DoctorComment';
-import { AuthRequest } from '../middleware/auth';
+import { AuthRequest, allowRoles } from '../middleware/auth';
 
 const router = Router();
 
@@ -21,7 +21,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 });
 
 // POST /api/doctor-comments
-router.post('/', async (req: AuthRequest, res: Response) => {
+router.post('/', allowRoles('admin', 'staff'), async (req: AuthRequest, res: Response) => {
   try {
     const comment = await DoctorComment.create(req.body);
     const populated = await comment.populate('staffId', 'name');
@@ -32,7 +32,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 });
 
 // DELETE /api/doctor-comments/:id
-router.delete('/:id', async (req: AuthRequest, res: Response) => {
+router.delete('/:id', allowRoles('admin', 'staff'), async (req: AuthRequest, res: Response) => {
   try {
     const comment = await DoctorComment.findByIdAndDelete(req.params.id);
     if (!comment) {
