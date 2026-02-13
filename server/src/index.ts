@@ -9,6 +9,7 @@ import vitalsRoutes from './routes/vitals';
 import doctorCommentRoutes from './routes/doctorComments';
 import medicineRoutes from './routes/medicines';
 import inquiryRoutes from './routes/inquiries';
+import { startPatientStatusCron } from './cron/patientStatusEmail';
 
 const app = express();
 const PORT = 5000;
@@ -33,6 +34,8 @@ mongoose
     app.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);
     });
+
+    startPatientStatusCron();
   })
   .catch((err) => {
     console.error('MongoDB connection error:', err);
