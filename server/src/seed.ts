@@ -65,10 +65,13 @@ async function seed() {
   console.log('Created users');
 
   // Patient links
-  await PatientLink.create([
-    { patientId: john._id, linkedUserId: mary._id, relationship: 'family' },
-    { patientId: john._id, linkedUserId: drWilson._id, relationship: 'staff' },
-  ]);
+  await PatientLink.create({
+    patientId: john._id,
+    links: [
+      { linkedUserId: mary._id, relationship: 'family' },
+      { linkedUserId: drWilson._id, relationship: 'staff' },
+    ],
+  });
   console.log('Created patient links');
 
   // Vitals for John

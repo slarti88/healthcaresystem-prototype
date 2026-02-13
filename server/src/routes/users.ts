@@ -14,7 +14,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
       return res.json(users);
     }
     // staff/family: only return linked patients
-    const links = await PatientLink.find({ linkedUserId: req.user!.id });
+    const links = await PatientLink.find({ 'links.linkedUserId': req.user!.id });
     const patientIds = links.map((l) => l.patientId);
     const patients = await User.find({ _id: { $in: patientIds } }).select('-password').sort({ createdAt: -1 });
     res.json(patients);

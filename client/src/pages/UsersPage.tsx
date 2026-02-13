@@ -22,6 +22,7 @@ export default function UsersPage() {
   const [linkPatientId, setLinkPatientId] = useState('');
   const [linkUserId, setLinkUserId] = useState('');
   const [linkRelationship, setLinkRelationship] = useState<'family' | 'staff'>('family');
+  const [linkError, setLinkError] = useState('');
 
   const fetchData = async () => {
     try {
@@ -72,6 +73,7 @@ export default function UsersPage() {
 
   const handleCreateLink = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLinkError('');
     try {
       await api.post('/patient-links', {
         patientId: linkPatientId,
@@ -80,8 +82,13 @@ export default function UsersPage() {
       });
       setLinkPatientId(''); setLinkUserId(''); setLinkRelationship('family');
       fetchData();
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      const message = err.response?.data?.message;
+      if (message) {
+        setLinkError(message);
+      } else {
+        console.error(err);
+      }
     }
   };
 
@@ -98,6 +105,14 @@ export default function UsersPage() {
 
   const patients = users.filter((u) => u.role === 'patient');
   const nonPatients = users.filter((u) => u.role !== 'patient' && u.role !== 'admin');
+
+  const handleLinkUserChange = (userId: string) => {
+    setLinkUserId(userId);
+    const selected = nonPatients.find((u) => u._id === userId);
+    if (selected && (selected.role === 'family' || selected.role === 'staff')) {
+      setLinkRelationship(selected.role);
+    }
+  };
 
   return (
     <div>
@@ -203,7 +218,7 @@ export default function UsersPage() {
             </div>
             <div className="form-group">
               <label>Link To</label>
-              <select value={linkUserId} onChange={(e) => setLinkUserId(e.target.value)} required>
+              <select value={linkUserId} onChange={(e) => handleLinkUserChange(e.target.value)} required>
                 <option value="">Select user...</option>
                 {nonPatients.map((u) => (
                   <option key={u._id} value={u._id}>{u.name} ({u.role})</option>
@@ -219,6 +234,7 @@ export default function UsersPage() {
             </div>
             <button type="submit" className="btn btn-primary">Link</button>
           </form>
+          {linkError && <p style={{ color: 'red', marginTop: 8 }}>{linkError}</p>}
 
           <table>
             <thead>
