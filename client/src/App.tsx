@@ -9,7 +9,6 @@ import PatientDetailPage from './pages/PatientDetailPage';
 import MedicineInventoryPage from './pages/MedicineInventoryPage';
 import InquiriesPage from './pages/InquiriesPage';
 import './App.css';
-import { TTSLogic } from 'speech-to-speech';
 
 function RoleRoute({ allowedRoles, children }: { allowedRoles: string[]; children: React.ReactNode }) {
   const { user } = useAuth();
@@ -20,12 +19,6 @@ function RoleRoute({ allowedRoles, children }: { allowedRoles: string[]; childre
 }
 
 function App() {
-
-  console.log("Test")
-
-  const tts = new TTSLogic({ voiceId: "en_US-hfc_female-medium", enableWasmCache:false});
-  tts.initialize();
-
   return (
     <AuthProvider>
       <BrowserRouter>
